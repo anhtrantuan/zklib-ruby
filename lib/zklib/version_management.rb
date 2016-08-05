@@ -3,7 +3,7 @@ class Zklib
     VERSION_KEYWORD = '~ZKFPVersion'
 
     # Get version of attendance machine
-    def version
+    def get_version
       execute_cmd({
         command:        CMD_DEVICE,
         command_string: VERSION_KEYWORD
