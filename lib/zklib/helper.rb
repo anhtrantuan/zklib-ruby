@@ -100,7 +100,7 @@ class Zklib
       checksum = 0
 
       (0...data.length).step(2){ |i|
-        checksum += (i == data.length - 1) ? data[i] : BinData::Uint16le.read(data[i..-1]).snapshot
+        checksum += (i == data.length - 1) ? BinData::Uint8le.read(data[i]).snapshot : BinData::Uint16le.read(data[i..-1]).snapshot
         checksum %= USHRT_MAX
       }
 
