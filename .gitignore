@@ -9,5 +9,7 @@
 /tmp/
 .ruby-version
 .rbenv-gemsets
+.byebug_history
 *~
 *.swp
+*.gem
