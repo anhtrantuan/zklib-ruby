@@ -7,10 +7,12 @@ require 'bindata'
 # Mixins
 require 'zklib/helper'
 require 'zklib/connection_management'
+require 'zklib/version_management'
 
 class Zklib
   include Helper
   include ConnectionManagement
+  include VersionManagement
 
   # Max unsigned short value
   USHRT_MAX = 65535
