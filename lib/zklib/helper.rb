@@ -20,7 +20,7 @@ class Zklib
       socket = UDPSocket.new
       socket.bind('0.0.0.0', inport)
       socket.send(header, 0, ip, port)
-      self.data_recv = socket.recvfrom(1024)[0]
+      self.data_recv = socket.recvfrom(65535)[0]
       socket.close
 
       # Callback
