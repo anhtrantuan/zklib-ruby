@@ -8,10 +8,12 @@ class Zklib
         command:        CMD_DEVICE,
         command_string: VERSION_KEYWORD
       }){ |opts|
-        if opts[:valid]
+        return puts "ERROR: #{options[:error]}" unless opts[:valid]
+
+        if opts[:data].length > 8
           opts[:data].split("\u0000").pop.tr("#{VERSION_KEYWORD}=", '')
         else
-          puts "ERROR: #{options[:error]}"
+          puts 'ERROR: Invalid version response'
         end
       }
     end
