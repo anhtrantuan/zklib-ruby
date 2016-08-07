@@ -6,12 +6,14 @@ require 'bindata'
 
 # Mixins
 require 'zklib/helper'
+require 'zklib/attendance_management'
 require 'zklib/connection_management'
 require 'zklib/serial_management'
 require 'zklib/version_management'
 
 class Zklib
   include Helper
+  include AttendanceManagement
   include ConnectionManagement
   include SerialManagement
   include VersionManagement

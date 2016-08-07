@@ -146,17 +146,29 @@ class Zklib
       time = (time - hour) / 24
 
       # Calculate day value
-      day = time % 32
-      time = (time - (day - 1)) / 31
+      day = time % 31 + 1
+      time = (time - day + 1) / 31
 
       # Calculate month value
-      month = time % 12
-      time = (time - month) / 12
+      month = time % 12 + 1
+      time = (time - month + 1) / 12
 
       # Calculate year value
       year = time + 2000
 
       Time.new(year, month, day, hour, minute, second)
+    end
+
+    # Receive data from non-blocking socket
+    #
+    # param  options
+    #        |_ socket  Socket to receive data from
+    def receive_nonblock(options)
+      return options[:socket].recvfrom_nonblock(65535)
+    rescue IO::WaitReadable
+      IO.select([options[:socket]])
+
+      retry
     end
   end
 end
