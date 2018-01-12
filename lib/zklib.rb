@@ -9,6 +9,7 @@ require 'zklib/helper'
 require 'zklib/attendance_management'
 require 'zklib/connection_management'
 require 'zklib/serial_management'
+require 'zklib/time_management'
 require 'zklib/version_management'
 
 class Zklib
@@ -16,6 +17,7 @@ class Zklib
   include AttendanceManagement
   include ConnectionManagement
   include SerialManagement
+  include TimeManagement
   include VersionManagement
 
   # Max unsigned short value

@@ -123,7 +123,7 @@ class Zklib
     def encode_time(options)
       time = options[:time]
 
-      ((time.year % 100) * 12 * 31 + (time.mon * 31) + time.day - 1) * (24 * 60 * 60) + (time.hour * 60 + time.min) * 60 + time.sec
+      ((time.year % 100) * 12 * 31 + ((time.mon - 1) * 31) + time.day - 1) * (24 * 60 * 60) + (time.hour * 60 + time.min) * 60 + time.sec
     end
 
     # Convert number of seconds to time
