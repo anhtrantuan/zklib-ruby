@@ -4,18 +4,19 @@ class Zklib
 
     # Get serial number of attendance machine
     def get_serial_number
-      execute_cmd({
+      execute_cmd(
         command:        CMD_DEVICE,
         command_string: SERIAL_KEYWORD
-      }){ |opts|
+      ) do |opts|
         return puts "ERROR: #{options[:error]}" unless opts[:valid]
 
-        if opts[:data].length > 8
-          opts[:data].split("\u0000").pop.tr("#{SERIAL_KEYWORD}=", '')
+        data = opts[:data]
+        if data.length > 8
+          data.split("\u0000").pop.tr("#{SERIAL_KEYWORD}=", '')
         else
           puts 'ERROR: Invalid serial number response'
         end
-      }
+      end
     end
   end
 end

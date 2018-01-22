@@ -4,12 +4,13 @@ class Zklib
     def get_time
       execute_cmd(
         command:        CMD_GET_TIME,
-        command_string: '',
+        command_string: ''
       ) do |opts|
         return puts "ERROR: #{options[:error]}" unless opts[:valid]
 
-        if opts[:data].length > 8
-          decode_time(seconds: BinData::Uint32le.read(opts[:data][8..-1]).snapshot)
+        data = opts[:data]
+        if data.length > 8
+          decode_time(seconds: BinData::Uint32le.read(data[8..-1]).snapshot)
         else
           puts 'ERROR: Invalid time response'
         end
@@ -30,13 +31,13 @@ class Zklib
 
       execute_cmd(
         command:        CMD_SET_TIME,
-        command_string: command_string,
+        command_string: command_string
       ) do |opts|
         return puts "ERROR: #{options[:error]}" unless opts[:valid]
 
         data = opts[:data]
         if data.length > 7
-          data
+          data.split("\u0000").pop
         else
           puts 'ERROR: Invalid time response'
         end

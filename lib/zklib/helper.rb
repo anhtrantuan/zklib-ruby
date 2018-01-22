@@ -1,43 +1,30 @@
 class Zklib
   module Helper
-    # Execute command on attendance machine
+    # Check validity of response
     #
     # param  options
-    #        |_ command         Command to execute
-    #        |_ command_string  Command string
-    def execute_cmd(options)
-      command = options[:command]
-      self.reply_id = USHRT_MAX - 1 if command == CMD_CONNECT
-      header = create_header({
-        command:        command,
-        checksum:       0,
-        session_id:     session_id,
-        reply_id:       reply_id,
-        command_string: options[:command_string]
-      })
+    #        |_ data  Data to check validity
+    def check_valid(options)
+      BinData::Uint16le.read(options[:data][0..-1]).snapshot == CMD_ACK_OK
+    end
 
-      # Send command
-      socket = UDPSocket.new
-      socket.bind('0.0.0.0', inport)
-      socket.send(header, 0, ip, port)
-      self.data_recv = socket.recvfrom(65535)[0]
-      socket.close
+    # Create checksum for execution
+    #
+    # param  options
+    #        |_ data  Data to create checksum
+    def create_checksum(options)
+      data = options[:data]
+      checksum = 0
 
-      # Callback
-      if data_recv && data_recv.length > 0
-        self.session_id = BinData::Uint16le.read(data_recv[4..-1]).snapshot
-        self.reply_id = BinData::Uint16le.read(data_recv[6..-1]).snapshot
-
-        yield({
-          valid: true,
-          data:  data_recv
-        }) if block_given?
-      else
-        yield({
-          valid: false,
-          error: 'Empty response'
-        }) if block_given?
+      (0...data.length).step(2) do |i|
+        checksum += (i == data.length - 1) ?
+          BinData::Uint8le.read(data[i]).snapshot :
+          BinData::Uint16le.read(data[i..-1]).snapshot
+        checksum %= USHRT_MAX
       end
+
+      chksum = USHRT_MAX - checksum - 1
+      chksum
     end
 
     # Create header for execution
@@ -54,22 +41,22 @@ class Zklib
 
       # Write command header
       binary_writer.value = options[:command]
-      header_buffer.pos = 0
+      header_buffer.pos   = 0
       binary_writer.write(header_buffer)
 
       # Write checksum header
       binary_writer.value = options[:checksum]
-      header_buffer.pos = 2
+      header_buffer.pos   = 2
       binary_writer.write(header_buffer)
 
       # Write session ID header
       binary_writer.value = options[:session_id]
-      header_buffer.pos = 4
+      header_buffer.pos   = 4
       binary_writer.write(header_buffer)
 
       # Write reply ID header
       binary_writer.value = options[:reply_id]
-      header_buffer.pos = 6
+      header_buffer.pos   = 6
       binary_writer.write(header_buffer)
 
       # Write command string header
@@ -77,53 +64,16 @@ class Zklib
       header_buffer.write(options[:command_string])
 
       # Rewrite checksum header
-      binary_writer.value = create_checksum({
-        data: header_buffer.string
-      })
-      header_buffer.pos = 2
+      binary_writer.value = create_checksum(data: header_buffer.string)
+      header_buffer.pos   = 2
       binary_writer.write(header_buffer)
 
       # Rewrite reply ID header
       binary_writer.value = (options[:reply_id] + 1) % USHRT_MAX
-      header_buffer.pos = 6
+      header_buffer.pos   = 6
       binary_writer.write(header_buffer)
 
       header_buffer.string
-    end
-
-    # Create checksum for execution
-    #
-    # param  options
-    #        |_ data  Data to create checksum
-    def create_checksum(options)
-      data = options[:data]
-      checksum = 0
-
-      (0...data.length).step(2){ |i|
-        checksum += (i == data.length - 1) ? BinData::Uint8le.read(data[i]).snapshot : BinData::Uint16le.read(data[i..-1]).snapshot
-        checksum %= USHRT_MAX
-      }
-
-      chksum = USHRT_MAX - checksum - 1
-      chksum
-    end
-
-    # Check validity of response
-    #
-    # param  options
-    #        |_ data  Data to check validity
-    def check_valid(options)
-      BinData::Uint16le.read(options[:data][0..-1]).snapshot == CMD_ACK_OK
-    end
-
-    # Convert time to number of seconds
-    #
-    # param  options
-    #        |_ time  Time object to encode
-    def encode_time(options)
-      time = options[:time]
-
-      ((time.year % 100) * 12 * 31 + ((time.mon - 1) * 31) + time.day - 1) * (24 * 60 * 60) + (time.hour * 60 + time.min) * 60 + time.sec
     end
 
     # Convert number of seconds to time
@@ -159,12 +109,69 @@ class Zklib
       Time.new(year, month, day, hour, minute, second)
     end
 
+    def decode_user_data(options)
+      data = options[:data]
+
+      {
+        uid:      BinData::Uint16be.read(data[0..1]).snapshot,
+        role:     BinData::Uint16le.read(data[2..3]).snapshot,
+        password: nil,
+        name:     nil,
+        cardno:   nil,
+        userid:   nil
+      }
+    end
+
+    # Convert time to number of seconds
+    #
+    # param  options
+    #        |_ time  Time object to encode
+    def encode_time(options)
+      time = options[:time]
+
+      ((time.year % 100) * 12 * 31 + ((time.mon - 1) * 31) + time.day - 1) * (24 * 60 * 60) + (time.hour * 60 + time.min) * 60 + time.sec
+    end
+
+    # Execute command on attendance machine
+    #
+    # param  options
+    #        |_ command         Command to execute
+    #        |_ command_string  Command string
+    def execute_cmd(options)
+      command = options[:command]
+      self.reply_id = USHRT_MAX - 1 if command == CMD_CONNECT
+      header = create_header(
+        command:        command,
+        checksum:       0,
+        session_id:     session_id,
+        reply_id:       reply_id,
+        command_string: options[:command_string]
+      )
+
+      # Send command
+      socket = UDPSocket.new
+      socket.bind('0.0.0.0', inport)
+      socket.send(header, 0, ip, port)
+      self.data_recv = socket.recvfrom(USHRT_MAX)[0] if IO.select([socket], nil, nil, 10)
+      socket.close
+
+      # Callback
+      if data_recv && data_recv.length > 0
+        self.session_id = BinData::Uint16le.read(data_recv[4..-1]).snapshot
+        self.reply_id = BinData::Uint16le.read(data_recv[6..-1]).snapshot
+
+        yield(valid: true, data: data_recv) if block_given?
+      else
+        yield(valid: false, error: 'Empty response') if block_given?
+      end
+    end
+
     # Receive data from non-blocking socket
     #
     # param  options
     #        |_ socket  Socket to receive data from
     def receive_nonblock(options)
-      return options[:socket].recvfrom_nonblock(65535)
+      return options[:socket].recvfrom_nonblock(USHRT_MAX)
     rescue IO::WaitReadable
       IO.select([options[:socket]])
 
